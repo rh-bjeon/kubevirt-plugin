@@ -82,13 +82,19 @@ const CPUMemoryModal: FC<CPUMemoryModalProps> = ({ isOpen, onClose, onSubmit, te
   const cpuLimits = getCPULimitsFromTemplate(template);
 
   useEffect(() => {
-    if (vm?.metadata) {
-      const { size: memSize, unit: memUnit } = getMemorySize(getMemory(vm));
-      setMemoryUnit(memUnit);
-      setMemory(memSize);
-      setCPU(getCPU(vm));
-    }
-  }, [vm]);
+    // NOTE: getTemplateVirtualMachineObject() (v4.20+) returns a new object each call,
+    // so depending on `vm` here will re-run the effect on every re-render and overwrite user input.
+    // Re-init only when the modal opens or the template version actually changes.
+    if (!isOpen) return;
+
+    const currentVM = getTemplateVirtualMachineObject(template);
+    if (!currentVM?.metadata) return;
+
+    const { size: memSize, unit: memUnit } = getMemorySize(getMemory(currentVM));
+    setMemoryUnit(memUnit);
+    setMemory(memSize);
+    setCPU(getCPU(currentVM));
+  }, [isOpen, template?.metadata?.uid, template?.metadata?.resourceVersion]);
 
   return (
     <Modal
